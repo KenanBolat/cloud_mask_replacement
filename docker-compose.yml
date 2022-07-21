@@ -3,10 +3,4 @@ services:
   gdal:
     build:
       context: .
-      args:
-        - DEV=true
-    ports:
-      - 8090:8090
-    environment:
-      - DEBUG=1
 
