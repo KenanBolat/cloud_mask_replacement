@@ -1,13 +1,7 @@
 import numpy as np
-import datetime
-import pandas as pd
-import xarray as xr
-# import rasterio
 from osgeo import gdal
 import os
-import matplotlib.pyplot as plt
-import enum
-# import rioxarray
+import rioxarray
 import datetime
 
 """
@@ -49,35 +43,86 @@ def read_raster_data_xr(filename):
         assert f'File {filename} does not exists'
 
 
+# Apply cloudmask using xarray method
 def apply_cloud_mask(image_filename, scl_mask_filename, export=True):
     # Read Dataset using rasterio
+    print("Processing started for applying cloud mask using xarray libraries ...")
     scl_dataset = read_raster_data_xr(scl_mask_filename)
     bands_dataset = read_raster_data_xr(image_filename)
 
-    # define filter for the given
-    filter = (scl_dataset == VEGETATION) | (scl_dataset == NOT_VEGETATED) | (scl_dataset == UNCLASSIFIED)
+    # define filter for the given classifications
+    filter_values = (scl_dataset == VEGETATION) | (scl_dataset == NOT_VEGETATED) | (scl_dataset == UNCLASSIFIED)
 
     # Create mask using xarray filtering "where" method with required classifications
-    mask = scl_dataset.where(filter, 0)
+    mask = scl_dataset.where(filter_values, 0)
 
     # Export mask for visual comparison with the external GIS Applications
     if export:
-        mask.rio.to_raster(os.path.join(processing_path, 'mask.tif'))
+        mask.rio.to_raster(os.path.join(processing_path, f'mask_{get_date_tag()}.tif'))
 
     # Apply mask to the bands
-    masked_bands = bands_dataset.where(filter.values, 0)
+    masked_bands = bands_dataset.where(filter_values.values, 0)
 
     # Export masked out bands to a multilayered geotiff
     if export:
-        masked_bands.rio.to_raster(os.path.join(processing_path, 'masked_bands.tif'))
+        masked_bands.rio.to_raster(os.path.join(processing_path, f'masked_bands_xr_{get_date_tag()}.tif'))
 
-    return masked_bands
+    print("Processing ended for applying cloud mask using xarray libraries ...")
+    return masked_bands.values
 
-def get_date_tag(format="%Y%m%d-%H%m%s"):
+
+# Apply cloudmask using GDAL method
+def apply_cloud_mask_gdal(image_filename, scl_mask_filename, export=True):
+    # Read raster data
+    print("Processing started for applying cloud mask using GDAL libraries ...")
+    raster_scl = read_raster_data_gdal(scl_mask_filename)
+    raster_bands = read_raster_data_gdal(image_filename)
+
+    # define filter for the given classifications
+    filter_values = ((raster_scl == VEGETATION) | (raster_scl == NOT_VEGETATED) | (raster_scl == UNCLASSIFIED))
+
+    # Create mask using list comprehension method
+    masked_out_data = [np.nan_to_num(row * filter_values) for row in raster_bands]
+
+    if export:
+
+        print("Exporting data...")
+        raster = gdal.Open(file_bands)
+
+        driver = gdal.GetDriverByName("GTiff")
+        rows, cols = raster_bands[0].shape
+
+        out_data = driver.Create(os.path.join(processing_path, f"masked_bands_gdal_{get_date_tag()}.tif"),
+                                 cols,
+                                 rows,
+                                 len(masked_out_data),
+                                 gdal.GDT_Float32)
+
+        out_data.SetGeoTransform(raster.GetGeoTransform())
+        out_data.SetProjection(raster.GetProjection())
+
+        for en, i in enumerate(masked_out_data):
+            band = out_data.GetRasterBand(en + 1)
+            band.WriteArray(i)
+
+        band = None
+        out_data = None
+        raster = None
+        print("Processing ended for applying cloud mask using GDAL libraries ...")
+        return np.array(masked_out_data)
+
+
+def get_date_tag(date_string_format="%Y%m%d-%H%M"):
+    return datetime.datetime.now().strftime(date_string_format)
+
 
 if __name__ == '__main__':
     start = datetime.datetime.now()
+
+    # point this path to the folder where the required data resides s
     processing_path = r'./data'
+
+    # data handling
     scl_filename = 'imageExample_SCL.tif'
     bands_filename = 'imageExample_Bands.tif'
     file_scl = os.path.join(processing_path, scl_filename)
@@ -85,32 +130,8 @@ if __name__ == '__main__':
 
     print(file_scl, file_bands)
 
-    # apply_cloud_mask(file_bands, file_scl)
+    # Apply cloud mask with two different methodologies
+    xr_result = apply_cloud_mask(file_bands, file_scl)
+    gdal_result = apply_cloud_mask_gdal(file_bands, file_scl)
+
     print('Execution time for the first method:', str(datetime.datetime.now() - start))
-
-    """
-    GDAL method 
-    """
-    raster_scl = read_raster_data_gdal(file_scl)
-    raster_bands = read_raster_data_gdal(file_bands)
-    filter_values = ((raster_scl == VEGETATION) | (raster_scl == NOT_VEGETATED) | (raster_scl == UNCLASSIFIED))
-    c = [np.nan_to_num(row * filter_values) for row in raster_bands]
-
-    raster = gdal.Open(file_bands)
-
-    driver = gdal.GetDriverByName("GTiff")
-    rows, cols = raster_bands[0].shape
-    outdata = driver.Create(os.path.join(processing_path, "trial_002.tif"), cols, rows, len(c), gdal.GDT_Float32)
-    outdata.SetGeoTransform(raster.GetGeoTransform())
-    outdata.SetProjection(raster.GetProjection())
-
-    for en, i in enumerate(c):
-        rows, cols = i.shape
-        band = outdata.GetRasterBand(en + 1)
-        band.WriteArray(i)
-
-    band = None
-    outdata = None
-    raster = None
-
-    pass

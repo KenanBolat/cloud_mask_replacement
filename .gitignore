@@ -9,6 +9,7 @@ __pycache__/
 # Large files
 *.tif
 *.tif
+*.xml
 
 .idea/
 .idea/*
