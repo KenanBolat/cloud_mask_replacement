@@ -1,0 +1,7 @@
+numpy
+matplotlib
+gdal==3.3.2
+pandas
+xarray
+rasterio
+rioxarray

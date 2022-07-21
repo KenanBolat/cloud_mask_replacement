@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 def read_raster_data(filename):
     if os.path.isfile(filename):
-        return gdal.Open(filename)
+        return gdal.Open(filename).GetRaster(1).ReadAsArray()
     else:
         assert f'File {filename} does not exists'
 
