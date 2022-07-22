@@ -4,7 +4,7 @@ services:
     build:
       context: .
     ports:
-      - 8999:8888
+      - 80:8888
     command: >
       sh -c "jupyter notebook --ip 0.0.0.0 --port 8888 --allow-root --NotebookApp.token='' --NotebookApp.password=''"
 
