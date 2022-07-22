@@ -1,4 +1,4 @@
-# Cloud Mask Replacement Task
+# Mask Replacement Task
 
 This repository is being formed to demonstrate the solution to the Cloud Mask Replacement Task
 
@@ -8,6 +8,7 @@ This repository is being formed to demonstrate the solution to the Cloud Mask Re
     - Jupyter solution:
         - Local
         - Via Docker
+    - AWS Cloud Method
 
 ## Requirements
 
@@ -67,4 +68,10 @@ From the settings menu of your favourite Python IDE change the interpreter to th
 > - You can run the individual cells to review the task
 > - Please be sure you have the test data copied into the ```data``` folder. 
 
+### AWS Cloud Method 
+> - The container created for this task has been uploaded to AWS Cloud solutions in order to give remote access rather than local one.  
+> - You can reach from the following address: 
+>   - ```http://ec2-18-117-109-195.us-east-2.compute.amazonaws.com/```
+>   - ```http://18.117.109.195/```
+> - Similar to the previous Jupyter solutions you can run the individual cells to review the task
 
